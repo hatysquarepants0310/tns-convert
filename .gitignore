@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local TI-Nspire documents and generated outputs
+*.tns
+*.tns.xml/
+*_xml/
+*_phoenix_xml/
+*.verify.xml/
+validation/
+
+# Proprietary/local reverse-engineering artifacts
+phoenix.dll
+*.i64
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
