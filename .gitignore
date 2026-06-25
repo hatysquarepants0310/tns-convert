@@ -10,8 +10,7 @@ htmlcov/
 .venv/
 venv/
 
-# Local TI-Nspire documents and generated outputs
-*.tns
+# Local TI-Nspire generated outputs
 *.tns.xml/
 *_xml/
 *_phoenix_xml/

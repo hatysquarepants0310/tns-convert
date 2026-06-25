@@ -1,160 +1,125 @@
-# TnsTools
+# TNS Converter
 
-Pure Python tools for decoding and rebuilding TI-Nspire `.tns` documents.
+Convierte archivos `.tns` de la calculadora **TI-Nspire** a formatos editables y viceversa.
+Un solo archivo, abre una interfaz web en tu navegador. Funciona en **Windows**, **macOS** y **Linux**.
 
-Converts TI-Nspire documents to readable XML and builds working method 13
-`.tns` files back from XML — no Firebird, emulator RAM dumps, or `phoenix.dll`
-required.
+- **Notas** (`.tns`) ↔ Texto (`.txt`)
+- **Hojas de cálculo** (`.tns`) ↔ Excel (`.xlsx`) / CSV (`.csv`)
+- Preserva fórmulas (`=A1+B1`, `=SUM(...)`, etc.)
 
-## Installation
-
-**Requirements:** Python 3.10+
-
-```bash
-pip install -r requirements.txt
-```
-
-Or install as an editable package:
+## Inicio rápido
 
 ```bash
-pip install -e .
+python3 tns_converter_app.py
 ```
 
-This exposes the `tnstools` and `tns-to-xml` console commands. The only
-dependency is [`pycryptodome`](https://pypi.org/project/pycryptodome/).
+Se abre automáticamente en tu navegador. No necesitas internet — todo corre en tu máquina.
 
-## Quick Start
+## Requisitos
 
-### Decode a `.tns` file to XML
+- **Python 3.10+**
+- **cryptography** (viene preinstalada en la mayoría de sistemas Linux/Mac)
 
 ```bash
-python tnstools.py -tns myfile.tns
+# Si no tienes cryptography:
+pip install cryptography
 ```
 
-Creates a folder `myfile.tns.xml/` with the extracted XML files
-(`Document.xml`, `Problem1.xml`, etc.).
-
-### Build a `.tns` file from XML
+## Instalación
 
 ```bash
-python tnstools.py -xml myfile.tns.xml -out rebuilt.tns
+git clone https://github.com/hatysquarepants0310/tns-convert.git
+cd tns-convert
+python3 tns_converter_app.py
 ```
 
-Takes an XML folder and produces a working `.tns` file with method 13
-encryption.
+Es un solo archivo. También puedes descargar únicamente `tns_converter_app.py` y ejecutarlo.
 
-## Usage
+## Qué puedes hacer
 
-### Decoding (`.tns` → XML)
+| Acción | Cómo |
+|--------|------|
+| Editar notas de la calculadora | Arrastra el `.tns` → edita el texto → descarga el nuevo `.tns` |
+| Editar hojas de cálculo | Arrastra el `.tns` → edita la tabla → descarga `.tns` |
+| Pasar un Excel a la calculadora | Arrastra tu `.xlsx` → descarga como `.tns` |
+| Exportar datos de la calculadora | Arrastra el `.tns` → descarga como `.xlsx` o `.csv` |
+| Crear notas desde cero | Click en "+ Crear notas nuevas" |
+| Crear hoja de cálculo desde cero | Click en "+ Crear hoja de cálculo nueva" |
+
+## Fórmulas
+
+Las fórmulas de Excel se convierten a fórmulas de la calculadora:
+
+```
+=A1+B1      →  A1+B1       (la TI-Nspire no usa el signo =)
+=SUM(A1:A5) →  SUM(A1:A5)
+```
+
+Al exportar de `.tns` a `.xlsx`, las fórmulas se preservan como fórmulas de Excel.
+
+## Archivos de ejemplo
+
+- `leyes.tns` — ejemplo de notas
+- `exel.tns` — ejemplo de hoja de cálculo
+
+---
+
+## Herramientas avanzadas (TnsTools)
+
+Este repositorio también incluye las herramientas de bajo nivel para trabajar directamente con el XML interno de los archivos `.tns`:
+
+### Decodificar `.tns` a XML
 
 ```bash
-# Basic decode
-python tnstools.py -tns file.tns
-
-# Choose output folder
-python tnstools.py -tns file.tns -out my_output
-
-# List entries while decoding
-python tnstools.py -tns file.tns --list
-
-# Write diagnostic artifacts (TIXC streams, entry manifest)
-python tnstools.py -tns file.tns --artifacts
+python tnstools.py -tns archivo.tns
 ```
 
-### Encoding (XML → `.tns`)
+Crea una carpeta con los XML extraídos (`Document.xml`, `Problem1.xml`, etc.).
+
+### Reconstruir `.tns` desde XML
 
 ```bash
-# Build .tns from XML folder
-python tnstools.py -xml file.tns.xml -out rebuilt.tns
-
-# Build and verify the result
-python tnstools.py -xml file.tns.xml -out rebuilt.tns --verify
+python tnstools.py -xml archivo.tns.xml -out reconstruido.tns
 ```
 
-The rebuilt file may differ in bytes from the original (fresh encoding), but
-the decoded XML will be identical.
-
-### Batch Validation
-
-Validate multiple `.tns` files with a decode → encode → decode roundtrip:
-
-```bash
-mkdir validation
-cp *.tns validation/
-python tnstools.py --validate validation
-```
-
-Optionally check rebuilt files against TI's own TIXC expander (requires
-TI-Nspire Student Software):
-
-```bash
-python tnstools.py --validate validation --validate-phoenix
-```
-
-### Alternative Decode Command
-
-`tns_to_xml.py` is a simpler wrapper for decoding only:
-
-```bash
-python tns_to_xml.py myfile.tns
-python tns_to_xml.py myfile.tns output_folder
-```
-
-## How It Works
+### Cómo funciona internamente
 
 ```
-Decode:  .tns → method 13 envelope → 3DES decrypt → deflate → TIXC → XML
-Encode:  XML → TIXC → deflate → 3DES encrypt → method 13 envelope → .tns
+Decode:  .tns → method 13 → 3DES decrypt → deflate → TIXC → XML
+Encode:  XML → TIXC → deflate → 3DES encrypt → method 13 → .tns
 ```
 
-Supported compression methods:
-- **Method 0** — stored / raw
+Métodos de compresión soportados:
+- **Method 0** — sin compresión
 - **Method 8** — deflate
-- **Method 13** — TI proprietary envelope (3DES + TIXC)
+- **Method 13** — envelope propietario de TI (3DES + TIXC)
 
-## All Options
+### Opciones de TnsTools
 
 ```
-usage: tnstools.py [-h] (-tns FILE | -xml DIR | --validate [DIR])
-                   [-out PATH] [--list] [--artifacts] [--verify]
-                   [--validate-phoenix] [--allow-stored-xml]
-                   [--tixc-backend {auto,pure,phoenix,none}]
-                   [--phoenix PATH] [--write-tixc-on-failure]
-
-  -tns FILE              Decode .tns file to XML folder
-  -xml DIR               Build .tns file from XML folder
-  --validate [DIR]       Validate .tns files in DIR (default: validation/)
-  -out PATH              Output path
-  --list                 Print parsed entries
-  --artifacts            Write diagnostic TIXC streams and manifest
-  --verify               Decode rebuilt .tns and compare XML bytes
-  --validate-phoenix     Also check with phoenix.dll during validation
-  --allow-stored-xml     Write method 0 (stored) instead of method 13
-  --tixc-backend TYPE    TIXC backend: auto, pure, phoenix, none
-  --phoenix PATH         Path to phoenix.dll (optional)
-  --write-tixc-on-failure  Write raw TIXC if XML expansion fails
+python tnstools.py -tns FILE          Decodificar .tns a XML
+python tnstools.py -xml DIR           Construir .tns desde XML
+python tnstools.py --validate [DIR]   Validar archivos .tns con roundtrip
+                   -out PATH          Ruta de salida
+                   --list             Mostrar entradas
+                   --verify           Verificar XML después de reconstruir
+                   --artifacts        Escribir TIXC y manifiesto de diagnóstico
 ```
 
-## Compatibility
+## Compatibilidad
 
-Tested with documents covering:
-
+Probado con documentos de:
 - Program Editor UDFs
-- Scratchpad / calculator history
+- Scratchpad / historial
 - Lists & Spreadsheet
-- DataGrapher / graph XML
-- ScriptApp / Lua CDATA payloads
-- CX-era and CX II-era documents
-- Game / program-style documents
+- DataGrapher / gráficas
+- ScriptApp / Lua
+- Documentos CX y CX II
 
-## Development
+## Créditos
 
-```bash
-python -m py_compile tnstools.py tns_to_xml.py tns_outer_parse.py tns_method13.py tixc_decode.py tixc_encode.py
-```
+Construido sobre [TnsTools](https://github.com/MaksimirKurtov/TnsTools) (MIT) para el manejo del cifrado 3DES propietario de TI.
 
-Reverse-engineering notes: [docs/REVERSE_NOTES.md](docs/REVERSE_NOTES.md).
-
-## License
+## Licencia
 
 [MIT](LICENSE)
