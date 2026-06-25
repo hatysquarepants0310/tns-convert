@@ -19,7 +19,29 @@ import pathlib
 import struct
 import zlib
 
-from Crypto.Cipher import DES3
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+
+class _DES3Compat:
+    MODE_ECB = "ecb"
+
+    def __init__(self, key, mode):
+        self._cipher = Cipher(algorithms.TripleDES(key), modes.ECB())
+
+    @staticmethod
+    def new(key, mode):
+        return _DES3Compat(key, mode)
+
+    def encrypt(self, data):
+        enc = self._cipher.encryptor()
+        return enc.update(data) + enc.finalize()
+
+    def decrypt(self, data):
+        dec = self._cipher.decryptor()
+        return dec.update(data) + dec.finalize()
+
+
+DES3 = _DES3Compat
 from tixc_decode import TixcDecodeError, decode_tixc
 
 
