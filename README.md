@@ -7,33 +7,28 @@ Un solo archivo, abre una interfaz web en tu navegador. Funciona en **Windows**,
 - **Hojas de cálculo** (`.tns`) ↔ Excel (`.xlsx`) / CSV (`.csv`)
 - Preserva fórmulas (`=A1+B1`, `=SUM(...)`, etc.)
 
-## Inicio rápido
+## Descarga
+
+Ve a [Releases](https://github.com/hatysquarepants0310/tns-convert/releases/tag/latest) y descarga el ejecutable para tu sistema:
+
+| Sistema | Archivo |
+|---------|---------|
+| Windows | `TNS_Converter_Windows.exe` |
+| macOS | `TNS_Converter_Mac` |
+| Linux | `TNS_Converter_Linux` |
+
+> **macOS:** la primera vez haz click derecho → "Abrir" en vez de doble click.
+
+## Uso con Python
+
+Si prefieres correrlo como script:
 
 ```bash
+pip install cryptography
 python3 tns_converter_app.py
 ```
 
 Se abre automáticamente en tu navegador. No necesitas internet — todo corre en tu máquina.
-
-## Requisitos
-
-- **Python 3.10+**
-- **cryptography** (viene preinstalada en la mayoría de sistemas Linux/Mac)
-
-```bash
-# Si no tienes cryptography:
-pip install cryptography
-```
-
-## Instalación
-
-```bash
-git clone https://github.com/hatysquarepants0310/tns-convert.git
-cd tns-convert
-python3 tns_converter_app.py
-```
-
-Es un solo archivo. También puedes descargar únicamente `tns_converter_app.py` y ejecutarlo.
 
 ## Qué puedes hacer
 
@@ -56,11 +51,6 @@ Las fórmulas de Excel se convierten a fórmulas de la calculadora:
 ```
 
 Al exportar de `.tns` a `.xlsx`, las fórmulas se preservan como fórmulas de Excel.
-
-## Archivos de ejemplo
-
-- `leyes.tns` — ejemplo de notas
-- `exel.tns` — ejemplo de hoja de cálculo
 
 ## Licencia
 
