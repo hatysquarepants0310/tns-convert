@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: TNS_Converter_Linux
+          - os: windows-latest
+            name: TNS_Converter_Windows
+          - os: macos-latest
+            name: TNS_Converter_Mac
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyinstaller cryptography
+
+      - name: Build
+        run: pyinstaller --onefile --name ${{ matrix.name }} tns_converter_app.py
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/${{ matrix.name }}*
