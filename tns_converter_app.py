@@ -1372,14 +1372,14 @@ def build_notes_fmtxt(text: str) -> str:
     for line in lines:
         words = re.findall(r'\S+\s*', line)
         word_count += len(words) if words else 1
-    word_count += len(lines)
+    word_count += 1  # final empty leaf
 
     parts = []
     parts.append(f'<r2dtotree version="1">')
     parts.append(f'<formatManager tableSize="1" capacity="2">')
     parts.append(FORMAT_ENTRY_DEFAULT.format(refcnt=word_count))
     parts.append(f'</formatManager>')
-    parts.append(f'<node name="1page">')
+    parts.append(f'<node name="1doc">')
 
     for line in lines:
         parts.append('<node name="1para"><node name="1rtline">')
