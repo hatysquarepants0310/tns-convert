@@ -2,8 +2,8 @@ name: Build
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 jobs:
   build:
@@ -37,4 +37,6 @@ jobs:
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: latest
+          name: Latest
           files: dist/${{ matrix.name }}*
