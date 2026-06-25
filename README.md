@@ -1,205 +1,160 @@
-# tnstools
+# TnsTools
 
 Pure Python tools for decoding and rebuilding TI-Nspire `.tns` documents.
 
-`tnstools` converts TI-Nspire documents to readable XML and builds working
-method 13 `.tns` files back from XML without Firebird, emulator RAM dumps, or a
-runtime dependency on `phoenix.dll`.
+Converts TI-Nspire documents to readable XML and builds working method 13
+`.tns` files back from XML — no Firebird, emulator RAM dumps, or `phoenix.dll`
+required.
 
-## Features
+## Installation
 
-- Parse TI-Nspire's ZIP-like `.tns` container, including `*TIMLP####` and
-  `TIPD` records.
-- Extract `Document.xml`, `Problem1.xml`, and other XML entries.
-- Decode entry methods:
-  - method 0 stored/raw
-  - method 8 deflate
-  - method 13 TI envelope
-- Decode method 13 in pure Python:
-  - fixed-key 3DES header decrypt
-  - `TIEN0100` parse
-  - derived 3DES counter-mode body decrypt
-  - raw deflate
-  - `TIXC0100` expansion to XML
-- Encode XML back to method 13 `.tns` files:
-  - XML to `TIXC0100`
-  - raw deflate
-  - method 13 3DES envelope
-  - rebuilt `.tns` container
-- Batch validation with optional `phoenix.dll` compatibility checks.
+**Requirements:** Python 3.10+
 
-## Requirements
-
-- Python 3.10 or newer
-- `pycryptodome`
-
-Install dependencies:
-
-```powershell
-python -m pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
 ```
 
-or:
+Or install as an editable package:
 
-```powershell
-python -m pip install pycryptodome
+```bash
+pip install -e .
 ```
 
-For editable development installs:
+This exposes the `tnstools` and `tns-to-xml` console commands. The only
+dependency is [`pycryptodome`](https://pypi.org/project/pycryptodome/).
 
-```powershell
-python -m pip install -e .
+## Quick Start
+
+### Decode a `.tns` file to XML
+
+```bash
+python tnstools.py -tns myfile.tns
 ```
 
-That exposes the `tnstools` and `tns-to-xml` console commands.
+Creates a folder `myfile.tns.xml/` with the extracted XML files
+(`Document.xml`, `Problem1.xml`, etc.).
 
-## Decode `.tns` to XML
+### Build a `.tns` file from XML
 
-```powershell
-python tnstools.py -tns path\to\file.tns
+```bash
+python tnstools.py -xml myfile.tns.xml -out rebuilt.tns
 ```
 
-This writes a folder named after the input file:
+Takes an XML folder and produces a working `.tns` file with method 13
+encryption.
 
-```text
-file.tns.xml\
-  Document.xml
-  Problem1.xml
+## Usage
+
+### Decoding (`.tns` → XML)
+
+```bash
+# Basic decode
+python tnstools.py -tns file.tns
+
+# Choose output folder
+python tnstools.py -tns file.tns -out my_output
+
+# List entries while decoding
+python tnstools.py -tns file.tns --list
+
+# Write diagnostic artifacts (TIXC streams, entry manifest)
+python tnstools.py -tns file.tns --artifacts
 ```
 
-Choose an output folder explicitly:
+### Encoding (XML → `.tns`)
 
-```powershell
-python tnstools.py -tns path\to\file.tns -out out_xml
-```
-
-List entries while decoding:
-
-```powershell
-python tnstools.py -tns path\to\file.tns --list
-```
-
-Write diagnostic artifacts:
-
-```powershell
-python tnstools.py -tns path\to\file.tns --artifacts
-```
-
-Artifacts include an entry manifest and intermediate `.tixc` streams. They are
-for debugging, not required for normal use.
-
-## Build XML Back To `.tns`
-
-```powershell
+```bash
+# Build .tns from XML folder
 python tnstools.py -xml file.tns.xml -out rebuilt.tns
-```
 
-This is an independent encode path. It does not need the original `.tns`:
-
-```text
-raw XML -> TIXC0100 -> raw deflate -> method 13 -> TNS container
-```
-
-The rebuilt `.tns` checksum and size can differ from the original. That is
-expected because the tool creates fresh TIXC, deflate, and method 13 bytes. The
-compatibility target is decoded XML identity and successful loading in TI
-software.
-
-Verify after building:
-
-```powershell
+# Build and verify the result
 python tnstools.py -xml file.tns.xml -out rebuilt.tns --verify
 ```
 
-## Batch Validation
+The rebuilt file may differ in bytes from the original (fresh encoding), but
+the decoded XML will be identical.
 
-Create a validation folder and put `.tns` files in it:
+### Batch Validation
 
-```powershell
+Validate multiple `.tns` files with a decode → encode → decode roundtrip:
+
+```bash
 mkdir validation
-copy path\to\*.tns validation\
+cp *.tns validation/
 python tnstools.py --validate validation
 ```
 
-Validation performs:
+Optionally check rebuilt files against TI's own TIXC expander (requires
+TI-Nspire Student Software):
 
-```text
-.tns -> XML -> rebuilt .tns -> XML
-```
-
-and compares the XML bytes.
-
-If TI-Nspire Student Software is installed, also check rebuilt files with
-TI's own TIXC expander:
-
-```powershell
+```bash
 python tnstools.py --validate validation --validate-phoenix
 ```
 
-`phoenix.dll` is only an optional compatibility oracle. It is not needed for
-normal decoding or encoding.
+### Alternative Decode Command
 
-## Compatibility Notes
+`tns_to_xml.py` is a simpler wrapper for decoding only:
 
-Validated locally against documents covering:
+```bash
+python tns_to_xml.py myfile.tns
+python tns_to_xml.py myfile.tns output_folder
+```
+
+## How It Works
+
+```
+Decode:  .tns → method 13 envelope → 3DES decrypt → deflate → TIXC → XML
+Encode:  XML → TIXC → deflate → 3DES encrypt → method 13 envelope → .tns
+```
+
+Supported compression methods:
+- **Method 0** — stored / raw
+- **Method 8** — deflate
+- **Method 13** — TI proprietary envelope (3DES + TIXC)
+
+## All Options
+
+```
+usage: tnstools.py [-h] (-tns FILE | -xml DIR | --validate [DIR])
+                   [-out PATH] [--list] [--artifacts] [--verify]
+                   [--validate-phoenix] [--allow-stored-xml]
+                   [--tixc-backend {auto,pure,phoenix,none}]
+                   [--phoenix PATH] [--write-tixc-on-failure]
+
+  -tns FILE              Decode .tns file to XML folder
+  -xml DIR               Build .tns file from XML folder
+  --validate [DIR]       Validate .tns files in DIR (default: validation/)
+  -out PATH              Output path
+  --list                 Print parsed entries
+  --artifacts            Write diagnostic TIXC streams and manifest
+  --verify               Decode rebuilt .tns and compare XML bytes
+  --validate-phoenix     Also check with phoenix.dll during validation
+  --allow-stored-xml     Write method 0 (stored) instead of method 13
+  --tixc-backend TYPE    TIXC backend: auto, pure, phoenix, none
+  --phoenix PATH         Path to phoenix.dll (optional)
+  --write-tixc-on-failure  Write raw TIXC if XML expansion fails
+```
+
+## Compatibility
+
+Tested with documents covering:
 
 - Program Editor UDFs
-- Scratchpad/calculator history
-- Lists & Spreadsheet/tabulator XML
-- DataGrapher/graph XML
-- ScriptApp/Lua CDATA payloads
-- older CX-era and newer CX/CX II-era documents
-- game/program-style documents
-
-Known caveats:
-
-- New or unusual `TIXC0100` states may still need support.
-- Non-XML resources embedded in `.tns` files are preserved only when supported by
-  the current container path.
-- This project does not include TI OS images, TI DLLs, or copyrighted sample
-  documents.
-
-## Optional Phoenix Comparison
-
-The old comparison backend can decode with TI-Nspire Student Software's
-`phoenix.dll` when installed:
-
-```powershell
-python tnstools.py -tns file.tns -out out_xml --tixc-backend phoenix
-```
-
-You can provide a path if needed:
-
-```powershell
-python tnstools.py -tns file.tns -out out_xml --tixc-backend phoenix --phoenix "C:\Path\to\phoenix.dll"
-```
-
-Copied standalone `phoenix.dll` files often fail to load because their
-dependencies are missing. The installed Student Software layout is more
-reliable.
+- Scratchpad / calculator history
+- Lists & Spreadsheet
+- DataGrapher / graph XML
+- ScriptApp / Lua CDATA payloads
+- CX-era and CX II-era documents
+- Game / program-style documents
 
 ## Development
 
-Compile-check the scripts:
-
-```powershell
+```bash
 python -m py_compile tnstools.py tns_to_xml.py tns_outer_parse.py tns_method13.py tixc_decode.py tixc_encode.py
 ```
 
-Run validation on a private corpus:
+Reverse-engineering notes: [docs/REVERSE_NOTES.md](docs/REVERSE_NOTES.md).
 
-```powershell
-python tnstools.py --validate validation --validate-phoenix
-```
+## License
 
-The repository intentionally ignores `.tns`, `.tns.xml`, generated rebuilds,
-reverse-engineering databases, and TI DLLs.
-
-Detailed reverse-engineering notes are kept in
-[docs/REVERSE_NOTES.md](docs/REVERSE_NOTES.md).
-
-## Legal
-
-This repository contains original interoperability code only. Do not commit or
-redistribute TI OS images, TI DLLs, commercial documents, or other proprietary
-materials.
+[MIT](LICENSE)
